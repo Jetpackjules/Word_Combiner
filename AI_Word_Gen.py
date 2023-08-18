@@ -1,22 +1,20 @@
 import openai
 import random
-
-# Download the required datasets
-# import nltk
-# nltk.download('words')
-# nltk.download('brown')
 from nltk.corpus import words, brown
-from nltk.probability import FreqDist
 
-# Preprocess the word list and frequency distribution
+# Preprocess the word list
 word_list = set(words.words())
-freq_dist = FreqDist(w.lower() for w in brown.words() if 2 <= len(w) <= 7)
 
-common_words = [word for word in word_list if 2 <= len(word) <= 7 and word in freq_dist]
-sorted_common_words = sorted(common_words, key=lambda x: freq_dist[x], reverse=True)[:5000]
+# Get nouns from the Brown corpus
+nouns = set(word.lower() for word, pos in brown.tagged_words() if pos in ['NN', 'NNS'])
+
+# Intersect with the word list and filter based on length
+common_nouns = [word for word in nouns if 2 <= len(word) <= 7 and word in word_list]
 
 def get_simple_word():
-    return random.choice(sorted_common_words)
+    return random.choice(common_nouns)
+
+
 
 # Initialize the OpenAI API with your key
 openai.api_key = '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'
@@ -28,7 +26,7 @@ available_words = set()
 target_word = get_simple_word()  # Change this to the word you want players to reach
 
 def add_starting_words(num_words=4):
-    starting_words = random.sample(sorted_common_words, num_words)
+    starting_words = random.sample(common_nouns, num_words)
     for word in starting_words:
         available_words.add(word)
     return starting_words
@@ -43,7 +41,8 @@ def combine_words(word1, word2):
         # Ask OpenAI for a likely combination
         response = openai.Completion.create(
             engine="davinci",
-            prompt=f"Combine words to create NEW COMMON 1-word results (must be at least vaguely connected by logic, like kneel + sudden = guillotine or decapitation):\nBird + fire = phoenix \nfire + mud = brick \ntax + cow = farmer \nthief + jail = inmate \n{word1} + {word2} =",
+            # An alternate route would be to find the word with the most common factor "synonyms" to the other word...
+            prompt=f"Combine words to create NEW, REAL, 1-word NOUN results (Think of what would happen if the two things would be combined physically, the outcome OR the closest word that is similar to these two words):\nBird + fire = phoenix \nfire + mud = brick \ntax + cow = farmer \nthief + jail = inmate \n{word1} + {word2} =",
             max_tokens=3
         )
         result2 = response.choices[0].text.strip()

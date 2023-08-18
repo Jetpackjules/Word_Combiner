@@ -46,7 +46,7 @@ def add_image_to_canvas(word, image):
     img_width = image.width
     text_x = 10 + (img_width / 2)
     
-    text_id = canvas.create_text(text_x, 170, anchor=tk.N, text=word)
+    text_id = canvas.create_text(text_x, 115, anchor=tk.N, text=word)
     canvas.image_dict[img_id] = photo  # Store reference to avoid garbage collection
     return img_id, text_id
 
@@ -60,9 +60,9 @@ def display_image(word="blank"):
         return
 
     try:
-        image_url = fetch_from_pexels(word)
-        if not image_url:
-            image_url = fetch_from_bing(word)
+        # image_url = fetch_from_pexels(word)
+        # if not image_url:
+        image_url = fetch_from_bing(word)
 
         response = requests.get(image_url)
         image = Image.open(BytesIO(response.content)).resize((100, 100))  # Resize for uniformity
@@ -73,8 +73,11 @@ def display_image(word="blank"):
         canvas.tag_bind(text_id, '<B1-Motion>', on_drag_motion)
         canvas.tag_bind(img_id, '<ButtonRelease-1>', on_drag_release)
         canvas.tag_bind(text_id, '<ButtonRelease-1>', on_drag_release)
+        
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to fetch image for '{word}'. Error: {e}")
+        messagebox.showerror("Error", f"Failed to fetch image for '{word}'. Error: {e}. URL: {image_url}")
+    else:
+        print(image_url)
 
 def on_drag_start(event, img_id, text_id):
     # Store the initial position and the IDs of the image and text
