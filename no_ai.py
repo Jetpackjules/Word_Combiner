@@ -38,14 +38,17 @@ def fetch_from_bing(query):
 
 
 
-# Function to add image to the canvas
 def add_image_to_canvas(word, image):
     photo = ImageTk.PhotoImage(image)
-    tag = f"img_{word}"  # Create a unique tag for each word-image pair
-    img_id = canvas.create_image(10, 10, anchor=tk.NW, image=photo, tags=tag)
-    text_id = canvas.create_text(10, 170, anchor=tk.NW, text=word, tags=tag)  # Adjust the y-coordinate to position text below the image
+    img_id = canvas.create_image(10, 10, anchor=tk.NW, image=photo)
+    
+    # Calculate the center position for the text
+    img_width = image.width
+    text_x = 10 + (img_width / 2)
+    
+    text_id = canvas.create_text(text_x, 170, anchor=tk.N, text=word)
     canvas.image_dict[img_id] = photo  # Store reference to avoid garbage collection
-    return tag
+    return img_id, text_id
 
 # Function to display image in the window
 def display_image():
@@ -62,30 +65,27 @@ def display_image():
         response = requests.get(image_url)
         image = Image.open(BytesIO(response.content)).resize((150, 150))  # Resize for uniformity
         img_id, text_id = add_image_to_canvas(word, image)
-        canvas.tag_bind(img_id, '<ButtonPress-1>', on_drag_start)
+        canvas.tag_bind(img_id, '<ButtonPress-1>', lambda event, img_id=img_id, text_id=text_id: on_drag_start(event, img_id, text_id))
         canvas.tag_bind(img_id, '<B1-Motion>', on_drag_motion)
-        canvas.tag_bind(text_id, '<ButtonPress-1>', on_drag_start)
+        canvas.tag_bind(text_id, '<ButtonPress-1>', lambda event, img_id=img_id, text_id=text_id: on_drag_start(event, img_id, text_id))
         canvas.tag_bind(text_id, '<B1-Motion>', on_drag_motion)
-        tag = add_image_to_canvas(word, image)
-        canvas.tag_bind(tag, '<ButtonPress-1>', on_drag_start)
-        canvas.tag_bind(tag, '<B1-Motion>', on_drag_motion)
     except Exception as e:
         messagebox.showerror("Error", f"Failed to fetch image for '{word}'. Error: {e}")
 
-def on_drag_start(event):
-    # Store the initial position
-    canvas.drag_data = {'x': event.x, 'y': event.y}
+def on_drag_start(event, img_id, text_id):
+    # Store the initial position and the IDs of the image and text
+    canvas.drag_data = {'x': event.x, 'y': event.y, 'img_id': img_id, 'text_id': text_id}
 
 def on_drag_motion(event):
     # Compute distance moved
     dx = event.x - canvas.drag_data['x']
     dy = event.y - canvas.drag_data['y']
-    # Move the object
-    canvas.move(tk.CURRENT, dx, dy)
+    # Move both the image and the text
+    canvas.move(canvas.drag_data['img_id'], dx, dy)
+    canvas.move(canvas.drag_data['text_id'], dx, dy)
     # Store new position
     canvas.drag_data['x'] = event.x
     canvas.drag_data['y'] = event.y
-
 # Create main window
 root = tk.Tk()
 root.title("Word to Image Canvas")
